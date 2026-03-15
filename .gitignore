@@ -205,3 +205,36 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Node.js / Frontend (React, Vite)
+node_modules/
+dist/
+build/
+*.pnp
+.pnp.js
+*.tsbuildinfo
+
+# Bun package manager
+bun.lockb
+
+# Frontend environment
+inspire-web-design/.env.local
+inspire-web-design/.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# Misc
+.DS_Store
+*.pem
