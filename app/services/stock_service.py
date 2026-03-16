@@ -46,7 +46,7 @@ def plot_stock_data(df: pd.DataFrame) -> None:
 
 
 def display_optimization_results(best_params, best_trades, best_total_profit, best_final_capital, 
-                                 best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return):
+                                 best_win_rate, best_avg_profit, best_annualized_return):
     """
     Display optimization results in a formatted output.
     
@@ -56,7 +56,6 @@ def display_optimization_results(best_params, best_trades, best_total_profit, be
     :param best_final_capital: Final capital after trading
     :param best_win_rate: Win rate percentage
     :param best_avg_profit: Average profit per trade
-    :param best_profit_loss_ratio: Profit/Loss ratio
     :param best_annualized_return: Annualized return percentage
     """
     print("\n" + "="*80)
@@ -74,7 +73,6 @@ def display_optimization_results(best_params, best_trades, best_total_profit, be
     print(f"  Annualized Return (%): {round(best_annualized_return * 100, 2)}")
     print(f"  Win Rate (%): {round(best_win_rate * 100, 2)}")
     print(f"  Average Profit per Trade (%): {round(best_avg_profit * 100, 2)}")
-    print(f"  Profit/Loss Ratio: {round(best_profit_loss_ratio, 2)}")
     print(f"  Final Capital: ${round(best_final_capital, 2)}")
     print("="*80 + "\n")
 

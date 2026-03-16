@@ -1,3 +1,5 @@
+from fastapi import logger
+
 from app.utils.data_downloader import download_stock_data
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -30,7 +32,6 @@ def convert_to_optimization_detail_result(
     best_final_capital: float,
     best_win_rate: float,
     best_avg_profit: float,
-    best_profit_loss_ratio: float,
     best_annualized_return: float
 ) -> OptimizationDetailResult:
     """
@@ -47,7 +48,6 @@ def convert_to_optimization_detail_result(
         best_final_capital: Final capital
         best_win_rate: Win rate
         best_avg_profit: Average profit per trade
-        best_profit_loss_ratio: Profit/Loss ratio
         best_annualized_return: Annualized return
     
     Returns:
@@ -80,7 +80,6 @@ def convert_to_optimization_detail_result(
         total_profit=best_total_profit,
         win_rate=best_win_rate,
         avg_profit_per_trade=best_avg_profit,
-        profit_loss_ratio=best_profit_loss_ratio,
         annualized_return=best_annualized_return,
         total_trades=len(trades_list),
         trades=trades_list
@@ -401,24 +400,23 @@ def optimize_strategy(df):
             best_trades_df = current_trades_df
             best_metrics = current_metrics
             best_final_capital = current_final_capital
-
     # (Debug output suppressed for API usage)
     # print(f"\nBest annualized return found: {best_annualized_return:.2%}")
     return best_params, best_trades_df, best_metrics['total_return'], best_final_capital, \
            best_metrics['win_rate'], best_metrics['avg_profit_per_trade'], \
-           best_metrics['profit_loss_ratio'], best_metrics['annualized_return']
+           best_metrics['annualized_return']
 
 
 def run_optimize_strategy(df):
     """
     Run parameter optimization maximizing annualized return and display results
     """
-    best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return = optimize_strategy(df)
+    best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_annualized_return = optimize_strategy(df)
     
-    return best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return
+    return best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_annualized_return
 
 
-def caculate_statistic(ticker = "TSLA", 
+def calculate_statistic(ticker = "TSLA", 
     start_date = "2020-01-01",
     end_date = "2026-02-01"):
       # 1. Fetch stock data using download_stock_data
@@ -469,7 +467,7 @@ def caculate_statistic(ticker = "TSLA",
     print("=" * 60)
     print("7. Running optimization (grid search)...")
     print("=" * 60)
-    best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return = optimize_strategy(data)
+    best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_annualized_return = optimize_strategy(data)
     print(f"[OK] Optimization complete!")
     print(f"  Best parameters: {best_params}")
     print(f"  Best annualized return: {best_annualized_return:.2%}")
@@ -482,6 +480,5 @@ def caculate_statistic(ticker = "TSLA",
         "best_final_capital": best_final_capital,
         "best_win_rate": best_win_rate,
         "best_avg_profit": best_avg_profit,
-        "best_profit_loss_ratio": best_profit_loss_ratio,
         "best_annualized_return": best_annualized_return
     }

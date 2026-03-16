@@ -165,7 +165,6 @@ class OptimizationDetailResult(BaseModel):
     total_profit: float = Field(..., description="Total profit percentage")
     win_rate: float = Field(..., description="Win rate of trades")
     avg_profit_per_trade: float = Field(..., description="Average profit per trade")
-    profit_loss_ratio: float = Field(..., description="Profit/Loss ratio")
     annualized_return: float = Field(..., description="Annualized return")
     total_trades: int = Field(..., description="Total number of trades", ge=0)
     trades: List[TradeDetail] = Field(..., description="Detailed trade history")
@@ -309,5 +308,67 @@ class OptimizedIndicatorResponse(BaseModel):
                         "macd_histogram": 0.0
                     }
                 ]
+            }
+        }
+
+
+class AllDataResponse(BaseModel):
+    """
+    Comprehensive response combining all stock data analysis.
+    
+    Attributes:
+        ticker: Stock ticker symbol
+        start_date: Start date of the query
+        end_date: End date of the query
+        total_records: Total number of records
+        stock_data: Basic stock data response
+        optimization_result: Optimization results and backtest metrics
+        optimized_indicators: Indicator data with optimized parameters
+    """
+    ticker: str = Field(..., description="Stock ticker symbol")
+    start_date: str = Field(..., description="Start date in YYYY-MM-DD format")
+    end_date: str = Field(..., description="End date in YYYY-MM-DD format")
+    total_records: int = Field(..., description="Total number of records", ge=0)
+    stock_data: StockDataResponse = Field(..., description="Basic stock data")
+    optimization_result: OptimizationDetailResult = Field(..., description="Optimization results with trade history")
+    optimized_indicators: OptimizedIndicatorResponse = Field(..., description="Indicators with optimized parameters")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "ticker": "TSLA",
+                "start_date": "2020-01-01",
+                "end_date": "2020-01-31",
+                "total_records": 20,
+                "stock_data": {
+                    "ticker": "TSLA",
+                    "start_date": "2020-01-01",
+                    "end_date": "2020-01-31",
+                    "total_records": 20,
+                    "data": []
+                },
+                "optimization_result": {
+                    "ticker": "TSLA",
+                    "start_date": "2020-01-01",
+                    "end_date": "2020-01-31",
+                    "total_records": 20,
+                    "optimal_params": {"ema_short": 8, "ema_long": 16, "macd_signal_span": 9},
+                    "final_capital": 1200,
+                    "total_profit": 0.20,
+                    "win_rate": 0.75,
+                    "avg_profit_per_trade": 0.05,
+                    "profit_loss_ratio": 2.0,
+                    "annualized_return": 0.25,
+                    "total_trades": 4,
+                    "trades": []
+                },
+                "optimized_indicators": {
+                    "ticker": "TSLA",
+                    "start_date": "2020-01-01",
+                    "end_date": "2020-01-31",
+                    "total_records": 20,
+                    "optimal_params": {"ema_short": 8, "ema_long": 16, "macd_signal_span": 9},
+                    "data": []
+                }
             }
         }

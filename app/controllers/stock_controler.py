@@ -4,13 +4,12 @@ from app.services.stock_service import (fetch_stock_data, display_optimization_r
                                         print_optimized_parameters, plot_optimized_technical_analysis)
 from app.services import new_stock_service, indicator_service
 from app.utils.logger import get_logger
-from app.models import (StockDataResponse, StockData, StockSummary, OptimizationResult, 
-                        OptimizationParams, OptimizationDetailResult, IndicatorResponse, 
-                        IndicatorData, IndicatorSummary, OptimizedIndicatorResponse)
+from app.models import (StockDataResponse, StockData, 
+                        OptimizationParams, OptimizationDetailResult, 
+                        IndicatorData, OptimizedIndicatorResponse, AllDataResponse)
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import datetime
 import numpy as np
 from sklearn.model_selection import ParameterGrid
 
@@ -332,11 +331,11 @@ def run_optimize_strategy(df):
     """
     Run parameter optimization maximizing annualized return and display results
     """
-    best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return = optimize_strategy(df)
+    best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_annualized_return = optimize_strategy(df)
     
     # Display optimization results using service function
     display_optimization_results(best_params, best_trades, best_total_profit, best_final_capital, 
-                                best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return)
+                                best_win_rate, best_avg_profit, best_annualized_return)
     
     # Print optimized parameters details
     print_optimized_parameters(best_params)
@@ -350,7 +349,7 @@ def run_optimize_strategy(df):
     # Plot optimized trading history
     plot_optimized_trading_history(df, summary_df)
     
-    return best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return
+    return best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_annualized_return
 
 
 @router.get("/", response_model=StockDataResponse)
@@ -433,7 +432,7 @@ def optimize_stock_strategy(
             raise HTTPException(status_code=404, detail=f"No data found for ticker {ticker}")
         
         # Run optimization directly (without console/plotting operations)
-        best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_profit_loss_ratio, best_annualized_return = new_stock_service.optimize_strategy(data)
+        best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_annualized_return = new_stock_service.optimize_strategy(data)
             
         # Convert results to OptimizationDetailResult model with trade details
         return new_stock_service.convert_to_optimization_detail_result(
@@ -447,7 +446,6 @@ def optimize_stock_strategy(
             best_final_capital=best_final_capital,
             best_win_rate=best_win_rate,
             best_avg_profit=best_avg_profit,
-            best_profit_loss_ratio=best_profit_loss_ratio,
             best_annualized_return=best_annualized_return
         )
     
@@ -495,7 +493,7 @@ def get_optimized_indicators(
             raise HTTPException(status_code=404, detail=f"No data found for ticker {ticker}")
         
         # Run optimization to find best parameters
-        best_params, _, _, _, _, _, _, _ = new_stock_service.optimize_strategy(data)
+        best_params, _, _, _, _, _, _ = new_stock_service.optimize_strategy(data)
         
         # Extract optimized parameters
         ema_short = best_params.get('EMA_short')
@@ -550,3 +548,127 @@ def get_optimized_indicators(
     except Exception as e:
         logger.error(f"Error fetching optimized indicators for {ticker}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error calculating optimized indicators: {str(e)}")
+
+
+@router.get("/get_all", response_model=AllDataResponse)
+def get_all_stock_data(
+    ticker: str = Query("TSLA", description="Stock ticker symbol"),
+    start_date: str = Query("2020-01-01", description="Start date in format YYYY-MM-DD"),
+    end_date: str = Query("2026-02-01", description="End date in format YYYY-MM-DD")
+):
+    """
+    Get comprehensive stock analysis combining all available data.
+    
+    This endpoint provides a complete summary including:
+    - Basic stock data (OHLCV)
+    - Optimized trading strategy results and backtest metrics
+    - Technical indicators calculated with optimized parameters
+    
+    Query Parameters:
+    - ticker: Stock ticker symbol (default: TSLA)
+    - start_date: Start date in YYYY-MM-DD format (default: 2020-01-01)
+    - end_date: End date in YYYY-MM-DD format (default: 2026-02-01)
+    
+    Returns:
+        AllDataResponse with stock data, optimization results, and optimized indicators
+    """
+    try:
+        # Fetch stock data
+        data = fetch_stock_data(ticker, start_date, end_date)
+        
+        if data.empty:
+            raise HTTPException(status_code=404, detail=f"No data found for ticker {ticker}")
+        
+        # 1. Get Stock Data Response
+        data.columns = data.columns.str.lower()
+        stock_records = [
+            StockData(
+                date=row['date'],
+                close=float(row['close']),
+                high=float(row['high']),
+                low=float(row['low']),
+                open=float(row['open']),
+                volume=int(row['volume'])
+            )
+            for _, row in data.iterrows()
+        ]
+        
+        stock_data_response = StockDataResponse(
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            total_records=len(stock_records),
+            data=stock_records
+        )
+        
+        # 2. Get Optimization Results
+        best_params, best_trades, best_total_profit, best_final_capital, best_win_rate, best_avg_profit, best_annualized_return = new_stock_service.optimize_strategy(data)
+        
+        optimization_detail_result = new_stock_service.convert_to_optimization_detail_result(
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            total_records=len(data),
+            best_params=best_params,
+            best_trades_df=best_trades,
+            best_total_profit=best_total_profit,
+            best_final_capital=best_final_capital,
+            best_win_rate=best_win_rate,
+            best_avg_profit=best_avg_profit,
+            best_annualized_return=best_annualized_return
+        )
+        
+        # 3. Get Optimized Indicators
+        ema_short = best_params.get('EMA_short')
+        ema_long = best_params.get('EMA_long')
+        macd_signal = best_params.get('MACD_Signal_span')
+        
+        data_with_indicators = data.copy()
+        data_with_indicators['EMA_short'] = indicator_service.calculate_ema(data_with_indicators, ema_short)
+        data_with_indicators['EMA_long'] = indicator_service.calculate_ema(data_with_indicators, ema_long)
+        data_with_indicators['MACD'] = data_with_indicators['EMA_short'] - data_with_indicators['EMA_long']
+        data_with_indicators['MACD_Signal'] = data_with_indicators['MACD'].ewm(span=macd_signal, adjust=False).mean()
+        data_with_indicators['MACD_Histogram'] = data_with_indicators['MACD'] - data_with_indicators['MACD_Signal']
+        
+        indicator_list = []
+        for idx, row in data_with_indicators.iterrows():
+            indicator_data = IndicatorData(
+                date=str(row['Date']),
+                close=float(row['Close']),
+                ema_short=float(row['EMA_short']) if pd.notna(row['EMA_short']) else None,
+                ema_long=float(row['EMA_long']) if pd.notna(row['EMA_long']) else None,
+                macd=float(row['MACD']) if pd.notna(row['MACD']) else None,
+                macd_signal=float(row['MACD_Signal']) if pd.notna(row['MACD_Signal']) else None,
+                macd_histogram=float(row['MACD_Histogram']) if pd.notna(row['MACD_Histogram']) else None
+            )
+            indicator_list.append(indicator_data)
+        
+        optimized_indicators_response = OptimizedIndicatorResponse(
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            total_records=len(data_with_indicators),
+            optimal_params=OptimizationParams(
+                ema_short=ema_short,
+                ema_long=ema_long,
+                macd_signal_span=macd_signal
+            ),
+            data=indicator_list
+        )
+        
+        # 4. Return combined response
+        return AllDataResponse(
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+            total_records=len(data),
+            stock_data=stock_data_response,
+            optimization_result=optimization_detail_result,
+            optimized_indicators=optimized_indicators_response
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching all stock data for {ticker}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching all stock data: {str(e)}")
